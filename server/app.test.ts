@@ -46,3 +46,27 @@ test('HTTP authorization, account controls, access and CSV export',async()=>{
   assert.equal((await request(`/admin/users/${pending.id}`,'PATCH',{status:'active'},a)).res.status,200); assert.ok(await login('pending'));
  } finally {await new Promise<void>((r,reject)=>server.close(e=>e?reject(e):r())); s.db.close();}
 });
+
+test('bearer sessions support cross-origin web clients without cookies',async()=>{
+ const s=new Store(':memory:'); await s.createUser('bearer-admin','Bearer Admin',password,'admin','active');
+ const server=createApp(s,{origin:'https://client.example',secure:true}).listen(0); await new Promise<void>(r=>server.once('listening',r));
+ const url=`http://127.0.0.1:${(server.address() as any).port}/api/v1`,origin='https://client.example';
+ async function request(path:string,method='GET',body?:any,headers:Record<string,string>={},requestOrigin=origin){
+  const res=await fetch(url+path,{method,headers:{origin:requestOrigin,...(body===undefined?{}:{'content-type':'application/json'}),...headers},...(body===undefined?{}:{body:JSON.stringify(body)})});
+  const text=await res.text();let data:any;try{data=JSON.parse(text)}catch{data=text};return {res,data};
+ }
+ try {
+  const login=await request('/auth/login','POST',{login:'bearer-admin',password},{'X-Session-Transport':'bearer'});
+  assert.equal(login.res.status,200);assert.equal(login.res.headers.get('set-cookie'),null);assert.equal(typeof login.data.sessionToken,'string');assert.ok(login.data.sessionToken.length>20);
+  const auth={Authorization:`Bearer ${login.data.sessionToken}`};
+  const me=await request('/me','GET',undefined,auth);assert.equal(me.res.status,200);assert.equal(me.data.user.login,'bearer-admin');
+  const csv=await request('/admin/export','GET',undefined,auth);assert.equal(csv.res.status,200);assert.match(csv.res.headers.get('content-type')!,/text\/csv/);
+  assert.equal((await request('/attempts','POST',{courseId:'tariffs',mode:'study'},auth)).res.status,403);
+  const attempt=await request('/attempts','POST',{courseId:'tariffs',mode:'study'}, {...auth,'X-CSRF-Token':login.data.csrf});assert.equal(attempt.res.status,201);
+  const preflight=await request('/admin/export','OPTIONS',undefined,{ 'Access-Control-Request-Method':'GET','Access-Control-Request-Headers':'authorization,content-type' });
+  assert.equal(preflight.res.status,204);assert.match(preflight.res.headers.get('access-control-allow-headers')||'',/Authorization/i);assert.equal(preflight.res.headers.get('access-control-allow-origin'),origin);
+  assert.equal((await request('/admin/export','OPTIONS',undefined,{ 'Access-Control-Request-Method':'GET','Access-Control-Request-Headers':'authorization' },'https://evil.example')).res.status,403);
+  const logout=await request('/auth/logout','POST',undefined,{...auth,'X-CSRF-Token':login.data.csrf});assert.equal(logout.res.status,200);
+  assert.equal((await request('/me','GET',undefined,auth)).res.status,401);
+ } finally {await new Promise<void>((resolve,reject)=>server.close(e=>e?reject(e):resolve()));}
+});
