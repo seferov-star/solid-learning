@@ -9,3 +9,5 @@ Original prompt: Отдельная серверная копия игры с к
 13.11.2026: По запросу владельца основной URL перенесён на seferov-star.github.io/solid-learning/, API 37-27-22-177.sslip.io на прежнем VPS, временный адрес согласован. Вход Bearer без cookies; аккаунты и изменённый владельцем пароль сохранены. CI d2c36d4 success, образ установлен. Дефект общей загрузки исправлен, 12 tests PASS; завершается новый live QA.
 
 Финал переноса: 2 полных normal-route live прогона PASS, 12 automated tests PASS. 3 QA accounts archived; SQLite backup/quick_check ok. API healthy, backup/TLS timers active. Требуется вход на новом URL с действующим (изменённым владельцем) паролем.
+
+13.11.2026: Добавление экзамена phone из materials/Экзамен_Стандарт_телефонного_общения.md. Импорт40 с проверкой ключей и107 цитат поDOCX; независимыйreviewLuna ошибокневыявил. Отдельный examItems, blueprint30/19/15+15,1500сек80%, refsпослефиниша, тренировочныйдопускбезизменения. Публикацияверсииphoneбудетявнойчерезserver/publish.ts, старыеattemptsсохраняютснимок.

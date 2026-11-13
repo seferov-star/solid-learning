@@ -25,7 +25,11 @@ test('HTTP authorization, account controls, access and CSV export',async()=>{
   const attempt=await request('/attempts','POST',{courseId:'tariffs',mode:'study'},u); assert.equal(attempt.res.status,201);
   assert.equal((await request(`/attempts/${attempt.data.id}`,'GET',undefined,a)).res.status,404);
   assert.equal((await request(`/attempts/${attempt.data.id}/action`,'POST',{action:'finish'},a)).res.status,404);
-  assert.equal((await request(`/admin/users/${user.id}/courses/phone/access`,'PATCH',{mode:'open'},a)).res.status,400);
+  assert.equal((await request(`/admin/users/${user.id}/courses/phone/access`,'PATCH',{mode:'open'},a)).res.status,200);
+  const disabled={...s.course('phone'),id:'disabled-phone',examEnabled:false};
+  s.run('INSERT INTO versions VALUES(?,?,?)','disabled-phone-v1','disabled-phone',JSON.stringify(disabled));
+  s.run('INSERT INTO courses VALUES(?,?)','disabled-phone','disabled-phone-v1');
+  assert.equal((await request(`/admin/users/${user.id}/courses/disabled-phone/access`,'PATCH',{mode:'open'},a)).res.status,400);
   assert.equal((await request(`/admin/users/${user.id}/courses/tariffs/access`,'PATCH',{mode:'open'},u)).res.status,403);
   const open=await request(`/admin/users/${user.id}/courses/tariffs/access`,'PATCH',{mode:'open'},a); assert.equal(open.data.allowed,true);
   const closed=await request(`/admin/users/${user.id}/courses/tariffs/access`,'PATCH',{mode:'closed'},a); assert.equal(closed.data.allowed,false);

@@ -50,9 +50,17 @@ test('mastery is per learner and course, permanent after a mistake, and gates al
  } finally {f.close();}
 });
 
-test('exam overrides do not enable phone or credit exam answers towards mastery',async()=>{
+test('phone exam access overrides preserve the disabled-course guard and exam answers do not count as training mastery',async()=>{
  const f=await fixture(); try {const {store:s,user:u}=f;
- for(const mode of ['auto','open','closed']) {s.run('INSERT OR REPLACE INTO access VALUES(?,?,?)',u.id,'phone',mode); assert.equal(s.access(u.id,'phone').allowed,false); throwsStatus(()=>s.start(u.id,'phone','exam'),403);}
+ const disabled={...s.course('phone'),id:'disabled-phone',examEnabled:false};
+ s.run('INSERT INTO versions VALUES(?,?,?)','disabled-phone-v1','disabled-phone',JSON.stringify(disabled));s.run('INSERT INTO courses VALUES(?,?)','disabled-phone','disabled-phone-v1');
+ for(const mode of ['auto','open','closed']) {s.run('INSERT OR REPLACE INTO access VALUES(?,?,?)',u.id,'disabled-phone',mode); assert.equal(s.access(u.id,'disabled-phone').allowed,false); throwsStatus(()=>s.start(u.id,'disabled-phone','exam'),403);}
+ s.run('INSERT OR REPLACE INTO access VALUES(?,?,?)',u.id,'phone','open');assert.equal(s.access(u.id,'phone').allowed,true);
+ let phone=s.course('phone'); const before=s.access(u.id,'phone').remainingQuestions;
+ let exam=s.start(u.id,'phone','exam'); const phoneExamId=exam.item.id;
+ exam=s.answer(u.id,exam.id,exam.item.id,exam.item.options[exam.item.options.findIndex((o:any)=>o.text===phone.examItems.find((i:any)=>i.id===exam.item.id)!.options[phone.examItems.find((i:any)=>i.id===exam.item.id)!.correctIndex])].id);
+ assert.equal(exam.feedback,null);s.action(u.id,exam.id,'finish');assert.equal(s.access(u.id,'phone').remainingQuestions,before);
+ assert.equal(s.get('SELECT COUNT(*) n FROM mastery WHERE user_id=? AND course_id=?',u.id,'phone').n,0);
  s.run('INSERT OR REPLACE INTO access VALUES(?,?,?)',u.id,'tariffs','open'); assert.equal(s.access(u.id,'tariffs').allowed,true);
  let v=s.start(u.id,'tariffs','exam'); const id=v.item.id; v=s.answer(u.id,v.id,id,answerId(s,v)); assert.equal(v.feedback,null); s.action(u.id,v.id,'finish');
  assert.ok(s.unresolved(u.id,'tariffs').some(i=>i.id===id));
