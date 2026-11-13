@@ -1,14 +1,29 @@
 export const API=import.meta.env.VITE_API_URL||'http://localhost:8080';
 let csrf='';
+const sessionKey='solid-learning.session:'+API;
+let token=sessionStorage.getItem(sessionKey)||'';
+function forget(){token='';csrf='';sessionStorage.removeItem(sessionKey);}
+const authHeaders=():Record<string,string>=>token?{Authorization:'Bearer '+token}:{};
+const label=(path:string)=>path==='/courses'?'список учебных тем':path==='/attempts'?'историю прохождений':path==='/me'?'профиль':path.startsWith('/admin/users')?'список пользователей':path.startsWith('/admin/results')?'результаты':path.startsWith('/admin/audit')?'журнал действий':'данные';
 export async function request(path:string,body?:any,method?:string){
- try {
-  const r=await fetch(API+'/api/v1'+path,{method:method||(body?'POST':'GET'),credentials:'include',signal:AbortSignal.timeout(20000),headers:{...(body?{'Content-Type':'application/json'}:{}),...(csrf&&(body||method)&&method!=='GET'?{'X-CSRF-Token':csrf}:{})},body:body?JSON.stringify(body):undefined});
-  const data=r.headers.get('content-type')?.includes('application/json')?await r.json():{error:'Сервис временно недоступен. Повторите запрос.'};
-  if(!r.ok){const error=Object.assign(new Error(data.error||'Ошибка запроса'),{status:r.status});if(r.status===401&&!path.startsWith('/auth/'))window.dispatchEvent(new Event('academy-session-expired'));throw error;}
-  if(data.csrf)csrf=data.csrf;return data;
- } catch(error:any) {
-  if(error.name==='TimeoutError'||error.name==='AbortError')throw new Error('Сервер не ответил за 20 секунд. Проверьте соединение и повторите запрос.');
-  if(error instanceof TypeError)throw new Error('Нет связи с сервером. Проверьте соединение и повторите запрос.');
-  throw error;
+ const verb=method||(body?'POST':'GET'),tries=verb==='GET'?2:1;
+ for(let attempt=0;attempt<tries;attempt++){
+  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),verb==='GET'?7000:15000);
+  try {
+   const r=await fetch(API+'/api/v1'+path,{method:verb,credentials:'omit',signal:controller.signal,headers:{...authHeaders(),...(path==='/auth/login'?{'X-Session-Transport':'bearer'}:{}),...(body?{'Content-Type':'application/json'}:{}),...(csrf&&verb!=='GET'?{'X-CSRF-Token':csrf}:{})},body:body?JSON.stringify(body):undefined});
+   const data=r.headers.get('content-type')?.includes('application/json')?await r.json():{error:'Сервис временно недоступен. Повторите запрос.'};
+   if(!r.ok){const error=Object.assign(new Error(data.error||'Ошибка запроса'),{status:r.status});if(r.status===401&&!path.startsWith('/auth/')){forget();window.dispatchEvent(new Event('academy-session-expired'));}throw error;}
+   if(data.sessionToken){token=data.sessionToken;sessionStorage.setItem(sessionKey,token);}if(data.csrf)csrf=data.csrf;if(path==='/auth/logout'||path==='/auth/password')forget();return data;
+  } catch(error:any) {
+   const network=controller.signal.aborted||error.name==='AbortError'||error instanceof TypeError;
+   if(network&&attempt+1<tries)continue;
+   if(network)throw new Error(`Не удалось загрузить ${label(path)}: соединение с сервером прервано. Повторите подключение. Сохранение отправленного ответа проверьте после подключения.`);
+   throw error;
+  } finally {clearTimeout(timeout);}
  }
+}
+
+export async function downloadCsv(path:string){
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+ try{const r=await fetch(API+'/api/v1'+path,{headers:authHeaders(),credentials:'omit',signal:controller.signal});if(!r.ok)throw new Error('Не удалось выгрузить результаты');const url=URL.createObjectURL(await r.blob()),a=document.createElement('a');a.href=url;a.download='results.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}finally{clearTimeout(timer);}
 }

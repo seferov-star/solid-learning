@@ -6,7 +6,7 @@ services:
     mem_limit: 512m
     cpus: 1.0
     environment:
-      WEB_ORIGIN: https://academy.hqserv.ru
+      WEB_ORIGIN: https://seferov-star.github.io
       DB_PATH: /app/data/app.sqlite
     volumes:
       - ./data:/app/data
