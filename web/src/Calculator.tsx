@@ -1,0 +1,11 @@
+import {useState} from 'react';
+import {calculateTariffCommission, type CalculatorTariffId} from './game/rules';
+const money=(n:number)=>new Intl.NumberFormat('ru-RU').format(n);
+const COURSES=[{}];const pdfLink=(_course?:unknown)=>import.meta.env.BASE_URL+'tariffs.pdf';
+export default function CalculatorPanel() {
+  const [tariff, setTariff] = useState<CalculatorTariffId>('solid_pro');
+  const [turnover, setTurnover] = useState(400000); const [contracts, setContracts] = useState(0); const [assets, setAssets] = useState(1500000);
+  const result = calculateTariffCommission({ tariffId: tariff, stockTurnoverRub: turnover, futuresContracts: contracts, clientAssetsRub: assets, voiceOrdersCount: 0 });
+  return <div className="calculator"><h2>Калькулятор комиссий</h2><p>Учебный расчет сделок с акциями на Мосбирже и фьючерсами. Дополнительные услуги и иные виды операций рассчитываются отдельно по документу.</p><label>Тариф<select value={tariff} onChange={e => setTariff(e.target.value as CalculatorTariffId)}>{[['solid_pro','Solid Pro'],['solid_pro_plus','Solid Pro+'],['base_moscow','Базовый стандарт · Москва'],['base_almetyevsk','Базовый стандарт · Альметьевск'],['razovyy','Разовый'],['partner','Партнер'],['pb_pro','Персональный брокер Про'],['trader_pro','Трейдер Про'],['pb_corp','Персональный брокер Корпоративный']].map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>{[['Дневной оборот по акциям, ₽',turnover,setTurnover],['Фьючерсные контракты',contracts,setContracts],['Оценка активов, ₽',assets,setAssets]].map(([name, value, setter]) => <label key={name as string}>{name as string}<input type="number" min="0" value={value as number} onChange={e => (setter as (v:number)=>void)(Math.max(0, Number(e.target.value)))} /></label>)}<div className="calc-result">Комиссии по сделкам <strong>{money(result.totalDailyBrokerFeeRub)} ₽</strong></div><p>{result.summaryNote}</p><p>Минимум за месяц: {money(result.monthlyMinFeeRub)} ₽ до предусмотренных тарифом зачетов. {result.includesExchangeFee ? 'Ставка по акциям включает комиссию биржи.' : 'Биржевые расходы по акциям учитываются отдельно.'} Комиссия биржи по фьючерсам в расчет не включена.</p><a href={pdfLink(COURSES[0])} target="_blank" rel="noreferrer">Проверить условия в классификаторе ↗</a></div>;
+}
+
