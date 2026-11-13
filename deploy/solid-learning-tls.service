@@ -1,0 +1,6 @@
+[Unit]
+Description=Renew Solid Learning API TLS certificate
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/docker run --rm -v /home/serfer/hqserv-site/certbot/conf:/etc/letsencrypt -v /home/serfer/hqserv-site/certbot/www:/var/www/certbot certbot/certbot renew --cert-name academy-api.hqserv.ru --quiet
+ExecStartPost=/usr/bin/docker exec hqserv-web nginx -s reload
