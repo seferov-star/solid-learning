@@ -4,4 +4,5 @@ Description=Renew Solid Learning API TLS certificate
 Type=oneshot
 ExecStart=/usr/bin/docker run --rm -v /home/serfer/hqserv-site/certbot/conf:/etc/letsencrypt -v /home/serfer/hqserv-site/certbot/www:/var/www/certbot certbot/certbot renew --cert-name academy-api.hqserv.ru --quiet
 ExecStart=/usr/bin/docker run --rm -v /home/serfer/hqserv-site/certbot/conf:/etc/letsencrypt -v /home/serfer/hqserv-site/certbot/www:/var/www/certbot certbot/certbot renew --cert-name 37-27-22-177.sslip.io --quiet
+ExecStart=/usr/bin/docker run --rm -v /home/serfer/hqserv-site/certbot/conf:/etc/letsencrypt -v /home/serfer/hqserv-site/certbot/www:/var/www/certbot certbot/certbot renew --cert-name academy.hqserv.ru --quiet
 ExecStartPost=/usr/bin/docker exec hqserv-web nginx -s reload
