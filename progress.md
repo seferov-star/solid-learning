@@ -1,7 +1,19 @@
 Original prompt: Отдельная серверная копия игры с кабинетами, админкой, допуском к экзаменам и нерешёнными заданиями.
-Согласованный план находится в чате от 13.11.2026. Исходные game и Pages не изменять.
-Этап: создание независимого проекта. Ещё не опубликован.
 
-QA 13.11.2026: server store/API tests pass; Playwright isolated DB and ports 8085/5175: registration, approval, access, unresolved, answer, pause, history, mobile. Findings sent: logout retains admin page; HTML login pattern invalid in Chromium v-mode. Artifacts: output/testdata/.
+13.11.2026: Реализованы независимый проект seferov-star/solid-learning, GitHub Pages academy.hqserv.ru и API academy-api.hqserv.ru на HqServ. Исходные game/pages-repo не менялись. Серверный образ fe05eda; последующие изменения касаются фронтенда, nginx и документации.
 
-13.11.2026: Создан repo seferov-star/solid-learning; DNS academy CNAME и academy-api A настроены в Cloudflare без изменений старых записей. Pages workflow 43407657221 success, сертификат LE academy-api выдан до 11.02.2027. API образ a1c6bfd скачан output/api-image.tar.gz (147976873 bytes); после текущих content/operations изменений нужен новый CI образ. Server 11 тестов проходят, Terra проверил UI и 20 клиентов/backup. Исходный проект не менялся. Следующее: финальные CI, загрузка OCI на VPS, compose, nginx HTTPS, bootstrap credentials в защищённый локальный файл, backup timer, живой QA, Landings.
+Готовы регистрация с одобрением, личный кабинет, админка, роли/блокировка/архив/сброс пароля, результаты/CSV/аудит, серверные попытки и таймеры, автоматический/ручной допуск по каждой теме, нерешённые вопросы и кейсы, версии контента и внутренний формат будущего импорта. Начальные данные admin находятся в защищённом локальном файле вне репозитория; пароль в чат не выводится. Backup/TLS timers включены.
+
+Проверки: 11 тестов PASS, включая 20 HTTP-клиентов и backup/restore. Terra — локальный UI; Luna — полный live UI через SSH SOCKS5: кабинеты/CSV/допуск/нерешённые/ответ/пауза/reload/история/мобильный390 PASS. Прямой маршрут из текущей сети нестабилен; это ограничение нельзя скрывать. Подробности в docs/OPERATIONS.md. CF proxy согласован владельцем. Пробное правило Alt-Svc отключено. Защита VPS не ослаблялась.
+
+13.11.2026: По запросу владельца основной URL перенесён на seferov-star.github.io/solid-learning/, API 37-27-22-177.sslip.io на прежнем VPS, временный адрес согласован. Вход Bearer без cookies; аккаунты и изменённый владельцем пароль сохранены. CI d2c36d4 success, образ установлен. Дефект общей загрузки исправлен, 12 tests PASS; завершается новый live QA.
+
+Финал переноса: 2 полных normal-route live прогона PASS, 12 automated tests PASS. 3 QA accounts archived; SQLite backup/quick_check ok. API healthy, backup/TLS timers active. Требуется вход на новом URL с действующим (изменённым владельцем) паролем.
+
+
+
+Исправление сетевых задержек: один фоновый GET, приоритет ответа и отмена старого GET, временное удержание неподтверждённого выбора, readback/квитанции, безопасная повторная доставка, локальный таймер, сокращение записей SQLite, HTTPS keepalive и замеры API. 18 серверных тестов и 4 локальных fault-сценария PASS. Готовится публикация и live-проверка.
+
+Исправления устойчивости опубликованы: backend6eaffba-runtime, HTTPS keepalive100/30s, ограниченные логи API; 18 серверных тестов и fault-сценарии PASS. На live подтверждён потерянный ACK реального POST и readback без дублирования. Дополнительно исправлены потерянный ACK создания попытки и восстановление активной/paused попытки при недоступном каталоге; локальные проверки PASS. QA архивированы, backup/quick_check/health ok. Остались внешние задержки установки новых соединений; производительность VPS достаточная.
+
+Финал: frontend fc5dbb8/CI43497899660 success, backend6eaffba-runtime healthy. 18 серверных тестов, 6 fault-сценариев плюс потерянный ACK создания и active/paused reload без каталога проверены. Реальный потерянный ACK ответа подтверждён одним POST200 и квитанцией. Все 3 курса/данные сохранены, QA закрыты, backup и TLS timers active.
