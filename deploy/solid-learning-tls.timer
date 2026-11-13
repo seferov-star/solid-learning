@@ -1,0 +1,8 @@
+[Unit]
+Description=Check Solid Learning TLS renewal daily
+[Timer]
+OnCalendar=*-*-* 04:15:00
+Persistent=true
+RandomizedDelaySec=1h
+[Install]
+WantedBy=timers.target

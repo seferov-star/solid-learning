@@ -1,0 +1,5 @@
+[Unit]
+Description=Backup Solid Learning database
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/docker exec solid-learning-api node --import tsx server/manage.ts backup
