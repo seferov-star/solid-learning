@@ -8,6 +8,7 @@ export type Level = 'easy' | 'medium' | 'hard';
 export interface Item {
   id: string; topicId: string; kind: 'question' | 'case'; difficulty: Level;
   question: string; wolfContext: string; options: string[]; correctIndex: number;
+  optionKeys?: string[]; sourceDocument?: string; sourceReferences?: {label:string;anchor:string;excerpt:string}[];
   explanation: string; clauseRef: string; sourcePage: number;
   sourceClause?: string; sourceExcerpt?: string; sourceAnchor?: string; optionReasons?: string[];
 }
@@ -15,8 +16,9 @@ export interface Topic { id: string; title: string; description: string; section
 export interface Course {
   id: string; title: string; shortTitle: string; subtitle: string; edition: string;
   sourceUrl: string; pdf: string; topics: Topic[]; items: Item[];
+  examItems?: Item[];
   examEnabled?: boolean; timedPractice?: boolean;
-  exam: { count: number; seconds: number; passPercent: number };
+  exam: { count: number; seconds: number; passPercent: number; blueprint?: 'balanced-pairs'; instruction?: string };
 }
 const pageOf = (ref: string) => Number(ref.match(/стр\.\s*(\d+)/)?.[1] || 1);
 export const COURSES: Course[] = [
@@ -54,12 +56,19 @@ export function shuffle<T>(values: readonly T[], random = Math.random): T[] {
 }
 export function shuffleItem(item: Item, random = Math.random): Item {
   const indices = shuffle(item.options.map((_, index) => index), random);
-  return { ...item, options: indices.map(i => item.options[i]), optionReasons: item.optionReasons ? indices.map(i => item.optionReasons![i]) : undefined, correctIndex: indices.indexOf(item.correctIndex) };
+  return { ...item, options: indices.map(i => item.options[i]), optionKeys: item.optionKeys ? indices.map(i => item.optionKeys![i]) : undefined, optionReasons: item.optionReasons ? indices.map(i => item.optionReasons![i]) : undefined, correctIndex: indices.indexOf(item.correctIndex) };
 }
 export function makeDeck(course: Course, mode: Mode, topicId = 'all', level = 'all', ids?: string[], random = Math.random): Item[] {
   if ((mode === 'exam' && course.examEnabled === false) || (mode === 'timed' && !course.timedPractice)) return [];
-  let pool = course.items.filter(q => q.kind === ((mode === 'cases' || mode === 'timed') ? 'case' : 'question'));
-  if (mode === 'exam') {
+  let pool = (mode==='exam' ? (course.examItems||course.items) : course.items).filter(q => q.kind === ((mode === 'cases' || mode === 'timed') ? 'case' : 'question'));
+  if (mode === 'exam' && course.exam.blueprint === 'balanced-pairs') {
+    const topics=shuffle(course.topics,random), paired=course.exam.count-topics.length;
+    const selected:Item[]=[];
+    const pick=(topicId:string,level:Level)=>{const item=shuffle(pool.filter(i=>i.topicId===topicId&&i.difficulty===level),random)[0];if(!item)throw new Error('Incomplete exam blueprint');selected.push(item);};
+    topics.slice(0,paired).forEach(t=>{pick(t.id,'medium');pick(t.id,'hard');});
+    topics.slice(paired).forEach((t,i)=>pick(t.id,i<(topics.length-paired)/2?'medium':'hard'));
+    pool=shuffle(selected,random);
+  } else if (mode === 'exam') {
     // Full-course examination: represent every available section before filling remaining slots.
     const selected: Item[] = [];
     const counts: Record<Level, number> = { easy: 0, medium: 0, hard: 0 };
