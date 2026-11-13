@@ -1,3 +1,4 @@
+import {validateContent} from './content.ts';
 import Database from 'better-sqlite3';
 import {randomUUID,randomBytes,createHash} from 'node:crypto';
 import argon2 from 'argon2';
@@ -19,7 +20,7 @@ export class Store {
   CREATE TABLE IF NOT EXISTS access(user_id TEXT,course_id TEXT,mode TEXT,PRIMARY KEY(user_id,course_id));
   CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY,actor TEXT,action TEXT,target TEXT,details TEXT,created INTEGER);
   PRAGMA user_version=1;`);
-  for(const course of COURSES){const payload=JSON.stringify(course),version=hash(payload);this.db.prepare('INSERT OR IGNORE INTO versions VALUES(?,?,?)').run(version,course.id,payload);this.db.prepare('INSERT OR IGNORE INTO courses VALUES(?,?)').run(course.id,version);}
+  for(const course of COURSES){validateContent({schemaVersion:1,course});const payload=JSON.stringify(course),version=hash(payload);this.db.prepare('INSERT OR IGNORE INTO versions VALUES(?,?,?)').run(version,course.id,payload);this.db.prepare('INSERT OR IGNORE INTO courses VALUES(?,?)').run(course.id,version);}
  }
  run(sql:string,...args:any[]){return this.db.prepare(sql).run(...args);}
  get(sql:string,...args:any[]):any{return this.db.prepare(sql).get(...args);}
