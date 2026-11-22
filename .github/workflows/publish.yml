@@ -21,7 +21,7 @@ jobs:
       - run: npx tsc --noEmit -p web/tsconfig.json
       - run: npm run build
         env:
-          VITE_API_URL: https://37-27-22-177.sslip.io
+          VITE_API_URL: https://academy.185-231-244-162.sslip.io
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
